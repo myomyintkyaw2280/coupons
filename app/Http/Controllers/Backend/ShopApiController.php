@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Backend;
 
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Validator;
 
 use App\Models\Admin;
 use App\Models\Coupon;
@@ -75,13 +76,7 @@ class ShopApiController extends Controller
         return response()->json($response, $httpCode)->withHeaders($this->resHeader);
     }
 
-    /**
-     * Store a newly created resource in storage.
-     */
-    public function store(Request $request)
-    {
-        //
-    }
+    
 
     /**
      * Display the specified resource.
@@ -95,6 +90,8 @@ class ShopApiController extends Controller
         $errors = $meta = [];
         $method = $request->method();
         $endpoint = $request->path();
+
+        
 
         $item = Shop::find($id);
 
@@ -132,44 +129,74 @@ class ShopApiController extends Controller
         return response()->json($response)->withHeaders($this->resHeader);
     }
 
+
     /**
-     * Update the specified resource in storage.
+     * Store a newly created resource in storage.
      */
-    public function update(Request $request, string $id)
+    public function store(Request $request, $adminId)
     {
-        // Start time
         $startTime = microtime(true);
-        
-        $errors = $meta = [];
-        $method = $request->method();
-        $endpoint = $request->path();
+        $meta = [
+            'method' => $request->method(),
+            'endpoint' => $request->path(),
+        ];
+        $success = 0;
+        $errors = $validated = [];
+        $data  = [];
+        $inputs = $request->all();
 
-        $item = Shop::find($id);
+        // Validate the incoming request data
+        $validate = Validator::make($inputs,[
+            'name' => 'string|nullable',
+            'query' => 'string|nullable',
+            'latitude' => 'numeric|nullable',
+            'longitude' => 'numeric|nullable',
+            'zoom' => 'string|nullable',
+        ]);
 
-        if($item){
-            $httpCode = 200;
-            $success = 1;
-            $meta = [
-                'method' => $method,
-                'endpoint' => $endpoint,            
+        // Check if validation fails
+        if ($validate->fails()) {
+            $i = 0;
+
+            foreach ($validate->errors()->toArray() as $key => $value) {
+                $validated[$i] = array(
+                    'attribute' => $key,
+                    'error' => [
+                        'key' => $key,
+                        'message' => $value[0]
+                    ]
+                );
+                $i++;
+            }
+
+            $errors = [
+                'message' => getErrorMessage(400002),
+                'code' => 400002,
+                'validation' => $validated,
             ];
-            $data = ["deleted" => (int)$id];
-            
-        }else{
-            $httpCode = 404;
             $success = 0;
-            $meta = [
-                'method' => $method,
-                'endpoint' => $endpoint
-            ];
-            $data = [];
-            $errors  = [
-                "message" => getErrorMessage(404002),
-                "code" => 404002
-            ];
+            $httpCode = 400;
+        }
+        else{
+            // Create a new Coupon instance
+            $shop = new Shop();
+            $shop->admin_id = $adminId;
+            $shop->name = $inputs['name'];
+            $shop->query = $inputs['query'];
+            $shop->latitude = $inputs['latitude'];
+            $shop->longitude = $inputs['longitude'];
+            $shop->zoom = $inputs['zoom'];
+
+            // // Save the coupon
+            $saved = $shop->save();
+            if($saved){
+                $data = array("id"=> $shop->id);
+                $httpCode = 201;
+                $success = 1;
+            }
+
         }
 
-        //Response format
         $response = makeRespFormat($success, $httpCode, $meta, $data, $errors);
         // End time
         $endTime = microtime(true);
@@ -178,9 +205,102 @@ class ShopApiController extends Controller
         $duration = $endTime - $startTime;
         $durationFormatted = number_format($duration, 3);
 
-        return response()->json($response)->withHeaders($this->resHeader);
+        $response['duration'] = $durationFormatted;
+
+        return response()->json($response, $httpCode);
     }
 
+    /**
+     * Update the specified resource in storage.
+     */
+
+    public function update(Request $request, $adminId, string $id)
+    {
+        $startTime = microtime(true);
+        $meta = [
+            'method' => $request->method(),
+            'endpoint' => $request->path(),
+        ];
+        $errors = $validated = [];
+        $inputs = $request->all();
+
+        // Validate the incoming request data
+        $validate = Validator::make($inputs,[
+            'name' => 'string|nullable',
+            'query' => 'string|nullable',
+            'latitude' => 'numeric|nullable',
+            'longitude' => 'numeric|nullable',
+            'zoom' => 'string|nullable',
+        ]);
+
+        // Check if validation fails
+        if ($validate->fails()) {
+            $i = 0;
+
+            foreach ($validate->errors()->toArray() as $key => $value) {
+                $validated[$i] = array(
+                    'attribute' => $key,
+                    'error' => [
+                        'key' => $key,
+                        'message' => $value[0]
+                    ]
+                );
+                $i++;
+            }
+
+            $errors = [
+                'message' => getErrorMessage(400002),
+                'code' => 400002,
+                'validation' => $validated,
+            ];
+            $success = 0;
+            $httpCode = 400;
+            $data = [];
+        }
+        else{
+            $shop = Shop::find($id);
+            if($shop){
+                $shop->admin_id = $adminId;
+                $shop->name = $inputs['name'];
+                $shop->query = $inputs['query'];
+                $shop->latitude = $inputs['latitude'];
+                $shop->longitude = $inputs['longitude'];
+                $shop->zoom = $inputs['zoom'];
+
+                // // Save the shop
+                $update = $shop->update();
+                if($update){
+                    $data = array("updated"=> $id);
+                    $httpCode = 200;
+                    $success = 1;
+                }
+            }else{
+
+                $httpCode = 404;
+                $success = 0;
+                $data = [];
+                $errors = array(
+                    "message" => getErrorMessage(404002),
+                    "code" => 404002
+                );
+
+            }
+
+        }
+
+        $response = makeRespFormat($success, $httpCode, $meta, $data, $errors);
+        // End time
+        $endTime = microtime(true);
+
+        // Calculate duration
+        $duration = $endTime - $startTime;
+        $durationFormatted = number_format($duration, 3);
+
+        $response['duration'] = $durationFormatted;
+
+        return response()->json($response, $httpCode);
+    }
+    
     /**
      * Remove the specified resource from storage.
      */

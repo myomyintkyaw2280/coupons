@@ -15,8 +15,8 @@ class CouponApiController extends Controller
 {
     protected $limit = 30;
     protected $resHeader = [
-                'Content-Type' => "application/json; charset=utf-8",
-            ];
+        'Content-Type' => "application/json; charset=utf-8",
+    ];
     /**
      * Display a listing of the resource.
      */
@@ -134,7 +134,7 @@ class CouponApiController extends Controller
         ];
         $success = 0;
         $errors = $validated = [];
-        $data = [];
+        $data  = [];
         $inputs = $request->all();
         // Validate the incoming request data
         $validatedData = Validator::make($inputs,[
@@ -224,7 +224,7 @@ class CouponApiController extends Controller
             'endpoint' => $request->path(),
         ];
         $errors = $validated = [];
-        $items = [];
+
         $inputs = $request->all();
         // Validate the incoming request data
         $validatedData = Validator::make($inputs,[
@@ -282,8 +282,8 @@ class CouponApiController extends Controller
                 // // Save the coupon
                 $update = $coupon->update();
                 if($update){
-                    $data = array("id"=> $id);
-                    $httpCode = 201;
+                    $data = array("updated"=> $id);
+                    $httpCode = 200;
                     $success = 1;
                 }
             }else{
