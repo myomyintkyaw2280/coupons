@@ -4,7 +4,7 @@
 if(!function_exists('getErrorMessage')){
 	function getErrorMessage($code){
 		$message = [
-            "400002" =>   "The resource that matches the request ID does not found.",
+            "400002" =>   "The request parameters are incorrect, please make sure to follow the documentation about request parameters of the resource.",
             "404002" =>   "The resource that matches the request ID does not found.",
             "404003" =>   "The updating resource that corresponds to the ID wasn't found.",
             "404004" =>   "The deleting resource that corresponds to the ID wasn't found.",

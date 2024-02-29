@@ -144,8 +144,33 @@ class ShopApiController extends Controller
         $method = $request->method();
         $endpoint = $request->path();
 
-        $shop = Shop::findOrFail($id);
+        $item = Shop::find($id);
 
+        if($item){
+            $httpCode = 200;
+            $success = 1;
+            $meta = [
+                'method' => $method,
+                'endpoint' => $endpoint,            
+            ];
+            $data = ["deleted" => (int)$id];
+            
+        }else{
+            $httpCode = 404;
+            $success = 0;
+            $meta = [
+                'method' => $method,
+                'endpoint' => $endpoint
+            ];
+            $data = [];
+            $errors  = [
+                "message" => getErrorMessage(404002),
+                "code" => 404002
+            ];
+        }
+
+        //Response format
+        $response = makeRespFormat($success, $httpCode, $meta, $data, $errors);
         // End time
         $endTime = microtime(true);
 
@@ -153,7 +178,7 @@ class ShopApiController extends Controller
         $duration = $endTime - $startTime;
         $durationFormatted = number_format($duration, 3);
 
-        return response()->json($response, $httpCode)->withHeaders($this->resHeader);
+        return response()->json($response)->withHeaders($this->resHeader);
     }
 
     /**
